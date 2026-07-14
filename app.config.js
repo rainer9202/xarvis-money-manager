@@ -30,6 +30,7 @@ module.exports = ({ config }) => ({
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
+    edgeToEdgeEnabled: true,
   },
   web: {
     favicon: './assets/favicon.png',
@@ -38,6 +39,7 @@ module.exports = ({ config }) => ({
   plugins: [
     'expo-router',
     'expo-font',
+    'expo-system-ui',
     [
       'expo-splash-screen',
       {

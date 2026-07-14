@@ -10,12 +10,11 @@ import type { MovementType } from '@/lib/movement-type';
 
 type DayCalendarModalProps = {
   visible: boolean;
-  /** The month currently shown on Home — this modal is a read-only overview
-   * of it, not a separate month browser. */
+  /** The month currently shown on the caller's screen — this modal is a
+   * read-only overview of it, not a separate month browser. */
   month: Dayjs;
-  /** Already scoped to `month` by the caller (Home passes its own
-   * `monthMovements`) — this component only aggregates by day, it doesn't
-   * filter by month itself. */
+  /** Already scoped to `month` by the caller — this component only
+   * aggregates by day, it doesn't filter by month itself. */
   movements: Movement[];
   onClose: () => void;
 };
@@ -29,12 +28,13 @@ type DayCell = {
 };
 
 /**
- * Read-only calendar view of the selected month for Home's navbar calendar
- * button — shows every day of the month with a colored dot per movement
- * type present that day (red=Gasto, green=Ingreso, blue=Transferencia), so
- * "what happened this month" is visible at a glance. Deliberately
- * non-interactive per product decision — days aren't pressable, this is an
- * overview, not a day picker.
+ * Read-only calendar view of the selected month, behind the navbar calendar
+ * button shared by Home, Charts, and Reports (components/movements-summary-
+ * header.tsx's `onPressCalendar`) — shows every day of the month with a
+ * colored dot per movement type present that day (red=Gasto, green=Ingreso,
+ * blue=Transferencia), so "what happened this month" is visible at a
+ * glance. Deliberately non-interactive per product decision — days aren't
+ * pressable, this is an overview, not a day picker.
  *
  * Slides up from the bottom on open and back down on close, matching
  * MonthPickerModal/AccountPickerModal — `animationType="none"` + a manually
@@ -53,13 +53,19 @@ export function DayCalendarModal({ visible, month, movements, onClose }: DayCale
   useEffect(() => {
     if (visible) {
       sheetTranslateY.setValue(300);
-      Animated.timing(sheetTranslateY, { toValue: 0, duration: 220, useNativeDriver: true }).start();
+      Animated.timing(sheetTranslateY, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
       return;
     }
     if (!isRendered) return;
-    Animated.timing(sheetTranslateY, { toValue: 300, duration: 200, useNativeDriver: true }).start(({ finished }) => {
-      if (finished) setIsRendered(false);
-    });
+    Animated.timing(sheetTranslateY, { toValue: 300, duration: 200, useNativeDriver: true }).start(
+      ({ finished }) => {
+        if (finished) setIsRendered(false);
+      },
+    );
   }, [visible, isRendered, sheetTranslateY]);
 
   const cells = useMemo(() => {
@@ -104,8 +110,15 @@ export function DayCalendarModal({ visible, month, movements, onClose }: DayCale
         <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
           <View className="rounded-t-lg border border-neutral-800 bg-neutral-900">
             <View className="flex-row items-center justify-between border-b border-neutral-800 px-4 py-5">
-              <Text className="text-2xl font-semibold text-neutral-50">{month.format('MMMM YYYY')}</Text>
-              <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cerrar">
+              <Text className="text-2xl font-semibold text-neutral-50">
+                {month.format('MMMM YYYY')}
+              </Text>
+              <Pressable
+                onPress={onClose}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
                 <Ionicons name="close" size={28} color="#fafafa" />
               </Pressable>
             </View>
@@ -114,24 +127,40 @@ export function DayCalendarModal({ visible, month, movements, onClose }: DayCale
               <View className="mb-3 flex-row">
                 {WEEKDAY_LABELS.map((label) => (
                   <View key={label} className="flex-1 items-center">
-                    <Text className="text-xs font-semibold uppercase text-neutral-500">{label}</Text>
+                    <Text className="text-xs font-semibold uppercase text-neutral-500">
+                      {label}
+                    </Text>
                   </View>
                 ))}
               </View>
 
               <View className="flex-row flex-wrap">
                 {Array.from({ length: cells.leadingBlanks }, (_, index) => (
-                  <View key={`blank-${index}`} style={{ width: `${100 / 7}%` }} className="mb-2 h-14 items-center" />
+                  <View
+                    key={`blank-${index}`}
+                    style={{ width: `${100 / 7}%` }}
+                    className="mb-2 h-14 items-center"
+                  />
                 ))}
                 {cells.days.map((cell) => {
                   const isToday = cell.dateKey === todayKey;
                   return (
-                    <View key={cell.dateKey} style={{ width: `${100 / 7}%` }} className="mb-2 h-14 items-center">
+                    <View
+                      key={cell.dateKey}
+                      style={{ width: `${100 / 7}%` }}
+                      className="mb-2 h-14 items-center"
+                    >
                       <View
                         className="h-11 w-11 items-center justify-center rounded-full"
                         style={isToday ? { borderWidth: 2, borderColor: '#fbbf24' } : undefined}
                       >
-                        <Text className={isToday ? 'text-base font-bold text-amber-400' : 'text-base font-medium text-neutral-200'}>
+                        <Text
+                          className={
+                            isToday
+                              ? 'text-base font-bold text-amber-400'
+                              : 'text-base font-medium text-neutral-200'
+                          }
+                        >
                           {cell.day}
                         </Text>
                         <View className="mt-0.5 flex-row gap-0.5">
@@ -151,15 +180,24 @@ export function DayCalendarModal({ visible, month, movements, onClose }: DayCale
 
               <View className="mt-4 flex-row justify-center gap-5">
                 <View className="flex-row items-center gap-1.5">
-                  <View className="h-2 w-2 rounded-full" style={{ backgroundColor: getMovementTypeColor('MT01') }} />
+                  <View
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: getMovementTypeColor('MT01') }}
+                  />
                   <Text className="text-xs text-neutral-500">Gastos</Text>
                 </View>
                 <View className="flex-row items-center gap-1.5">
-                  <View className="h-2 w-2 rounded-full" style={{ backgroundColor: getMovementTypeColor('MT02') }} />
+                  <View
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: getMovementTypeColor('MT02') }}
+                  />
                   <Text className="text-xs text-neutral-500">Ingresos</Text>
                 </View>
                 <View className="flex-row items-center gap-1.5">
-                  <View className="h-2 w-2 rounded-full" style={{ backgroundColor: getMovementTypeColor('MT03') }} />
+                  <View
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: getMovementTypeColor('MT03') }}
+                  />
                   <Text className="text-xs text-neutral-500">Transferencias</Text>
                 </View>
               </View>

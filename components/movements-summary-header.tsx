@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, StatusBar, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Dayjs } from 'dayjs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,9 +9,10 @@ import { formatCents } from '@/lib/format-money';
 
 type MovementsSummaryHeaderProps = {
   month: Dayjs;
-  /** Gastos/Ingresos(or Límite)/Balance row — Home and Charts show it
-   * (default), Reports doesn't (it has its own, differently-scoped stat
-   * cards below the header) so it only renders the month selector. */
+  /** Month selector + Gastos/Ingresos(or Límite)/Balance row — Home and
+   * Charts show it (default); Reports doesn't (it has its own,
+   * differently-scoped stat cards below the header, and no month-selector
+   * UI of its own — see `onOpenMonthPicker`), so the whole row is skipped. */
   showStats?: boolean;
   expenseCents?: number;
   incomeCents?: number;
@@ -23,23 +24,23 @@ type MovementsSummaryHeaderProps = {
    * lib/hooks/use-account-month-movements.ts's `tallyExpenseIncome`, where
    * Ingresos - Gastos already equals Balance for the selected account. */
   selectedAccount?: Account;
-  /** Reports (`showStats={false}`) skips the button+modal picker entirely
-   * and instead gets an inline prev/next month selector, same mechanic as
-   * the year selector in month-picker-modal.tsx — required together with
-   * `showStats={false}`, ignored otherwise. */
-  onSelectMonth?: (month: Dayjs) => void;
   onOpenAccountPicker: () => void;
-  /** Unused (and safe to omit) when `showStats={false}` — see
-   * `onSelectMonth` above. */
+  /** Reports (`showStats={false}`) has no month-selector UI of its own —
+   * it just reflects whatever month is already active in the shared
+   * `useMonthFilterStore`, set from Home/Charts. Unused (and safe to omit)
+   * when `showStats={false}`. */
   onOpenMonthPicker?: () => void;
   onPressCalendar: () => void;
 };
 
 /**
- * Navbar + month selector + Expenses/Income/Balance row — shared verbatim
- * between Home (app/(app)/index.tsx), Charts (app/(app)/charts.tsx), and
- * Reports (app/(app)/reports.tsx) so all three read as the same "account +
- * month" context, just with a different body below. Data comes from
+ * Navbar, shared verbatim between Home (app/(app)/index.tsx), Charts
+ * (app/(app)/charts.tsx), and Reports (app/(app)/reports.tsx) so all three
+ * read as the same app. Home/Charts also get the month selector +
+ * Expenses/Income/Balance row (`showStats`, default true); Reports has its
+ * own, differently-scoped stat cards below the header instead, and reflects
+ * whatever month is already active in the shared `useMonthFilterStore`
+ * rather than offering its own way to change it. Data comes from
  * lib/hooks/use-account-month-movements.ts; the account/month picker modals
  * themselves stay owned by each screen (their open/close state is local UI
  * state, not shared).
@@ -51,7 +52,6 @@ export function MovementsSummaryHeader({
   incomeCents = 0,
   balanceCents = 0,
   selectedAccount,
-  onSelectMonth,
   onOpenAccountPicker,
   onOpenMonthPicker,
   onPressCalendar,
@@ -63,9 +63,12 @@ export function MovementsSummaryHeader({
   // month-scoped Ingresos-Gastos identity, since a card's limit isn't a
   // monthly-reset concept (for-frontend.md §5.2: balanceCents is never
   // clamped by creditLimitCents and carries across months).
-  const creditLimitCents = selectedAccount?.type === 'AT03' ? selectedAccount.creditLimitCents : null;
+  const creditLimitCents =
+    selectedAccount?.type === 'AT03' ? selectedAccount.creditLimitCents : null;
   const isCredit = creditLimitCents !== null && creditLimitCents !== undefined;
-  const displayBalanceCents = isCredit ? creditLimitCents! + selectedAccount!.balanceCents : balanceCents;
+  const displayBalanceCents = isCredit
+    ? creditLimitCents! + selectedAccount!.balanceCents
+    : balanceCents;
   // For a Crédito account, `incomeCents` is entirely payments toward the
   // card (a transfer landing on this account, tallyExpenseIncome's MT03
   // "destination" leg — a card has no real income of its own), so a
@@ -75,14 +78,39 @@ export function MovementsSummaryHeader({
   // (e.g. clearing prior months' debt) shouldn't show as negative Gastos.
   const displayExpenseCents = isCredit ? Math.max(0, expenseCents - incomeCents) : expenseCents;
   const insets = useSafeAreaInsets();
+  // insets.top can report 0 on Android when the edge-to-edge inset dispatch
+  // hasn't kicked in yet — StatusBar.currentHeight reads the real native bar
+  // height directly, so it's a reliable floor for the same value.
+  const topInset =
+    Platform.OS === 'android' ? Math.max(insets.top, StatusBar.currentHeight ?? 0) : insets.top;
 
   return (
-    <View className="border-b border-nav-border bg-nav pb-5" style={{ paddingTop: insets.top }}>
-      <View className="mb-3 flex-row items-center justify-between px-6 pb-2 pt-5">
-        <Pressable onPress={onOpenAccountPicker} accessibilityRole="button" accessibilityLabel="Cambiar cuenta" hitSlop={8}>
+    <View
+      className={
+        showStats
+          ? 'border-b border-nav-border bg-nav pb-5'
+          : 'border-b border-nav-border bg-nav pb-3'
+      }
+      style={{ paddingTop: topInset }}
+    >
+      <View
+        className={
+          showStats
+            ? 'mb-3 flex-row items-center justify-between px-6 pb-2 pt-5'
+            : 'flex-row items-center justify-between px-6 pb-2 pt-5'
+        }
+      >
+        <Pressable
+          onPress={onOpenAccountPicker}
+          accessibilityRole="button"
+          accessibilityLabel="Cambiar cuenta"
+          hitSlop={8}
+        >
           <Ionicons name="menu" size={28} color="#fafafa" />
         </Pressable>
-        <Text className="text-xl font-bold uppercase tracking-wide text-neutral-50">Xarvis Cuartos</Text>
+        <Text className="text-xl font-bold uppercase tracking-wide text-neutral-50">
+          Xarvis Cuartos
+        </Text>
         <Pressable
           onPress={onPressCalendar}
           accessibilityRole="button"
@@ -93,8 +121,8 @@ export function MovementsSummaryHeader({
         </Pressable>
       </View>
 
-      <View className="flex-row items-center pl-6 pr-4">
-        {showStats ? (
+      {showStats ? (
+        <View className="flex-row items-center pl-6 pr-4">
           <Pressable
             onPress={onOpenMonthPicker}
             accessibilityRole="button"
@@ -102,53 +130,45 @@ export function MovementsSummaryHeader({
             className="mr-3 items-center py-1.5 pr-3"
           >
             <Ionicons name="calendar-outline" size={20} color="#fbbf24" />
-            <Text className="mt-1 text-sm font-semibold text-neutral-50">{month.format('MMM')}</Text>
+            <Text className="mt-1 text-sm font-semibold text-neutral-50">
+              {month.format('MMM')}
+            </Text>
           </Pressable>
-        ) : (
-          <View className="flex-1 flex-row items-center justify-between py-1.5">
-            <Pressable
-              onPress={() => onSelectMonth?.(month.subtract(1, 'month'))}
-              accessibilityRole="button"
-              accessibilityLabel="Mes anterior"
-              hitSlop={8}
+          <View className="flex-1 items-center px-1">
+            <Text className="text-sm font-medium text-neutral-400">Gastos</Text>
+            <Text
+              className="mt-1 text-lg font-semibold text-red-500"
+              numberOfLines={1}
+              adjustsFontSizeToFit
             >
-              <Ionicons name="chevron-back" size={24} color="#fafafa" />
-            </Pressable>
-            <Text className="text-lg font-semibold capitalize text-neutral-50">{month.format('MMMM YYYY')}</Text>
-            <Pressable
-              onPress={() => onSelectMonth?.(month.add(1, 'month'))}
-              accessibilityRole="button"
-              accessibilityLabel="Mes siguiente"
-              hitSlop={8}
-            >
-              <Ionicons name="chevron-forward" size={24} color="#fafafa" />
-            </Pressable>
+              {displayExpenseCents > 0 ? '-' : ''}
+              {formatCents(displayExpenseCents)}
+            </Text>
           </View>
-        )}
-        {showStats ? (
-          <>
-            <View className="flex-1 items-center px-1">
-              <Text className="text-sm font-medium text-neutral-400">Gastos</Text>
-              <Text className="mt-1 text-lg font-semibold text-red-500" numberOfLines={1} adjustsFontSizeToFit>
-                {displayExpenseCents > 0 ? '-' : ''}
-                {formatCents(displayExpenseCents)}
-              </Text>
-            </View>
-            <View className="flex-1 items-center px-1">
-              <Text className="text-sm font-medium text-neutral-400">{isCredit ? 'Límite' : 'Ingresos'}</Text>
-              <Text className="mt-1 text-lg font-semibold text-neutral-50" numberOfLines={1} adjustsFontSizeToFit>
-                {formatCents(isCredit ? creditLimitCents! : incomeCents)}
-              </Text>
-            </View>
-            <View className="flex-1 items-center px-1">
-              <Text className="text-sm font-medium text-neutral-400">Balance</Text>
-              <Text className="mt-1 text-lg font-semibold text-amber-400" numberOfLines={1} adjustsFontSizeToFit>
-                {formatCents(displayBalanceCents)}
-              </Text>
-            </View>
-          </>
-        ) : null}
-      </View>
+          <View className="flex-1 items-center px-1">
+            <Text className="text-sm font-medium text-neutral-400">
+              {isCredit ? 'Límite' : 'Ingresos'}
+            </Text>
+            <Text
+              className="mt-1 text-lg font-semibold text-neutral-50"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {formatCents(isCredit ? creditLimitCents! : incomeCents)}
+            </Text>
+          </View>
+          <View className="flex-1 items-center px-1">
+            <Text className="text-sm font-medium text-neutral-400">Balance</Text>
+            <Text
+              className="mt-1 text-lg font-semibold text-amber-400"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {formatCents(displayBalanceCents)}
+            </Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }

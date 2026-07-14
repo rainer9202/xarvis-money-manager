@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import {
@@ -31,6 +32,14 @@ const queryClient = new QueryClient();
 dayjs.locale('es');
 
 void SplashScreen.preventAutoHideAsync();
+
+// Sets the native root view's background color (Android's windowBackground)
+// once, app-wide — without this, any screen transition can flash the OS
+// default white for a frame before React paints, since contentStyle on
+// Stack.screenOptions only covers React's own render, not the native
+// window underneath it. Fixing this here (not per-screen) is deliberate:
+// every current and future screen gets it for free.
+void SystemUI.setBackgroundColorAsync(colors.background);
 
 export default function RootLayout() {
   const router = useRouter();
@@ -87,7 +96,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <Stack
-          screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: colors.background } }}
+          screenOptions={{
+            headerShown: false,
+            animation: 'none',
+            contentStyle: { backgroundColor: colors.background },
+          }}
         >
           <Stack.Screen name="index" />
           <Stack.Protected guard={!token}>

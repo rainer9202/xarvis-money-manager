@@ -6,16 +6,25 @@ export type Group = {
   id: string;
   name: string;
   isActive: boolean;
+  /** Optional maximum-spending cap, in cents — `null` when no cap is set.
+   * Purely informational (for-frontend.md §5.1): nothing on the backend
+   * blocks a movement from being assigned to a group already over budget. */
+  budgetCents: number | null;
   createdAt: string;
 };
 
 export type CreateGroupPayload = {
   name: string;
+  /** Omit entirely for no cap; must be `>= 1` if present. */
+  budgetCents?: number;
 };
 
 export type UpdateGroupPayload = Partial<{
   name: string;
   isActive: boolean;
+  /** Three-state per for-frontend.md §5.1: omit to leave the cap unchanged,
+   * `null` to clear it, a number (`>= 1`) to set/replace it. */
+  budgetCents: number | null;
 }>;
 
 export function listGroups() {

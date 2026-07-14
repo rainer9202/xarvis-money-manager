@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Animated, Modal, Pressable, View } from 'react-native';
+import {
+  Animated,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StatusBar,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { SelectField } from '@/components/ui/select-field';
@@ -26,7 +36,10 @@ import { accountFormSchema, type AccountFormValues } from '@/lib/schemas/account
 // Picker options aren't tied to a fetched account, so there's no server
 // `typeLabel` to prefer here — the fallback label map is the right source
 // for option text.
-const ACCOUNT_TYPE_OPTIONS = ACCOUNT_TYPES.map((type) => ({ label: ACCOUNT_TYPE_LABELS[type], value: type }));
+const ACCOUNT_TYPE_OPTIONS = ACCOUNT_TYPES.map((type) => ({
+  label: ACCOUNT_TYPE_LABELS[type],
+  value: type,
+}));
 const DEFAULT_VALUES: AccountFormValues = { name: '', type: 'AT01', creditLimitCents: '' };
 
 type AccountFormModalProps = {
@@ -50,6 +63,13 @@ export function AccountFormModal({ visible, account, onClose }: AccountFormModal
   const [isRendered, setIsRendered] = useState(visible);
   const [sheetTranslateY] = useState(() => new Animated.Value(300));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  // insets.top can report 0 on Android when the edge-to-edge inset dispatch
+  // hasn't kicked in yet — StatusBar.currentHeight is a reliable floor.
+  const topInset =
+    Platform.OS === 'android' ? Math.max(insets.top, StatusBar.currentHeight ?? 0) : insets.top;
+  const sheetMaxHeight = windowHeight - topInset - 24;
 
   const {
     control,
@@ -82,7 +102,8 @@ export function AccountFormModal({ visible, account, onClose }: AccountFormModal
         ? {
             name: account.name,
             type: account.type,
-            creditLimitCents: account.creditLimitCents !== null ? (account.creditLimitCents / 100).toString() : '',
+            creditLimitCents:
+              account.creditLimitCents !== null ? (account.creditLimitCents / 100).toString() : '',
           }
         : DEFAULT_VALUES,
     );
@@ -91,13 +112,19 @@ export function AccountFormModal({ visible, account, onClose }: AccountFormModal
   useEffect(() => {
     if (visible) {
       sheetTranslateY.setValue(300);
-      Animated.timing(sheetTranslateY, { toValue: 0, duration: 220, useNativeDriver: true }).start();
+      Animated.timing(sheetTranslateY, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
       return;
     }
     if (!isRendered) return;
-    Animated.timing(sheetTranslateY, { toValue: 300, duration: 200, useNativeDriver: true }).start(({ finished }) => {
-      if (finished) setIsRendered(false);
-    });
+    Animated.timing(sheetTranslateY, { toValue: 300, duration: 200, useNativeDriver: true }).start(
+      ({ finished }) => {
+        if (finished) setIsRendered(false);
+      },
+    );
   }, [visible, isRendered, sheetTranslateY]);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: accountsQueryKey });
@@ -112,7 +139,8 @@ export function AccountFormModal({ visible, account, onClose }: AccountFormModal
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateAccountPayload }) => updateAccount(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateAccountPayload }) =>
+      updateAccount(id, payload),
     onSuccess: () => {
       invalidate();
       onClose();
@@ -154,86 +182,106 @@ export function AccountFormModal({ visible, account, onClose }: AccountFormModal
 
   return (
     <Modal visible={isRendered} animationType="none" transparent onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end" onPress={onClose}>
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-          }}
-        />
-        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }], maxHeight: '85%' }}>
-          <Pressable onPress={(event) => event.stopPropagation()}>
-            <View className="rounded-t-lg border border-neutral-800 bg-neutral-900">
-              <View className="flex-row items-center justify-between border-b border-neutral-800 px-4 py-5">
-                <Text className="text-2xl font-semibold text-neutral-50">{account ? 'Editar cuenta' : 'Agregar cuenta'}</Text>
-                <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cerrar">
-                  <Ionicons name="close" size={28} color="#fafafa" />
-                </Pressable>
-              </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Pressable className="flex-1 justify-end" onPress={onClose}>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+            }}
+          />
+          <Animated.View
+            style={{ transform: [{ translateY: sheetTranslateY }], maxHeight: sheetMaxHeight }}
+          >
+            <Pressable onPress={(event) => event.stopPropagation()}>
+              <View className="rounded-t-lg border border-neutral-800 bg-neutral-900">
+                <View className="flex-row items-center justify-between border-b border-neutral-800 px-4 py-5">
+                  <Text className="text-2xl font-semibold text-neutral-50">
+                    {account ? 'Editar cuenta' : 'Agregar cuenta'}
+                  </Text>
+                  <Pressable
+                    onPress={onClose}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cerrar"
+                  >
+                    <Ionicons name="close" size={28} color="#fafafa" />
+                  </Pressable>
+                </View>
 
-              <View className="px-4 py-6">
-                <Controller
-                  control={control}
-                  name="name"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <TextField
-                      label="Nombre"
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      placeholder="Cuenta principal"
-                      error={errors.name?.message}
-                    />
-                  )}
-                />
-
-                <Controller
-                  control={control}
-                  name="type"
-                  render={({ field: { onChange, value } }) => (
-                    <SelectField
-                      label="Tipo"
-                      value={value}
-                      options={ACCOUNT_TYPE_OPTIONS}
-                      onChange={onChange}
-                      error={errors.type?.message}
-                    />
-                  )}
-                />
-
-                {isCredit ? (
+                <View className="px-4 py-6">
                   <Controller
                     control={control}
-                    name="creditLimitCents"
+                    name="name"
                     render={({ field: { onChange, onBlur, value } }) => (
                       <TextField
-                        label="Límite de crédito"
-                        keyboardType="decimal-pad"
+                        label="Nombre"
                         onBlur={onBlur}
                         onChangeText={onChange}
                         value={value}
-                        placeholder="500.00"
-                        error={errors.creditLimitCents?.message}
+                        placeholder="Cuenta principal"
+                        error={errors.name?.message}
                       />
                     )}
                   />
-                ) : null}
 
-                {errorMessage ? <Text className="mb-3 text-base text-red-500">{errorMessage}</Text> : null}
+                  <Controller
+                    control={control}
+                    name="type"
+                    render={({ field: { onChange, value } }) => (
+                      <SelectField
+                        label="Tipo"
+                        value={value}
+                        options={ACCOUNT_TYPE_OPTIONS}
+                        onChange={onChange}
+                        error={errors.type?.message}
+                      />
+                    )}
+                  />
 
-                <Button className="mt-4" isLoading={isSubmitting} onPress={handleSubmit(onSubmit)}>
-                  {account ? 'Guardar cambios' : 'Agregar cuenta'}
-                </Button>
+                  {isCredit ? (
+                    <Controller
+                      control={control}
+                      name="creditLimitCents"
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <TextField
+                          label="Límite de crédito"
+                          keyboardType="decimal-pad"
+                          onBlur={onBlur}
+                          onChangeText={onChange}
+                          value={value}
+                          placeholder="500.00"
+                          error={errors.creditLimitCents?.message}
+                        />
+                      )}
+                    />
+                  ) : null}
+
+                  {errorMessage ? (
+                    <Text className="mb-3 text-base text-red-500">{errorMessage}</Text>
+                  ) : null}
+
+                  <Button
+                    className="mt-4"
+                    isLoading={isSubmitting}
+                    onPress={handleSubmit(onSubmit)}
+                  >
+                    {account ? 'Guardar cambios' : 'Agregar cuenta'}
+                  </Button>
+                </View>
               </View>
-            </View>
-          </Pressable>
-        </Animated.View>
-      </Pressable>
+            </Pressable>
+          </Animated.View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

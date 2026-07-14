@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { GroupFormModal } from '@/components/group-form-modal';
@@ -14,13 +13,13 @@ import { Text } from '@/components/ui/Text';
 import { deleteGroup, updateGroup, type Group } from '@/lib/api/groups';
 import { showApiError } from '@/lib/api/show-api-error';
 import { confirmDestructive } from '@/lib/confirm';
+import { formatCents } from '@/lib/format-money';
 import { groupsQueryKey, useGroups } from '@/lib/hooks/use-groups';
 
 // A Group is a lightweight per-movement tag (for-frontend.md §5.1) — unlike
 // Category it has no movementType/icon of its own, so every row uses the
 // same neutral glyph instead of a per-item color/icon.
-export default function GroupsScreen() {
-  const router = useRouter();
+export function GroupsView({ onBack }: { onBack: () => void }) {
   const queryClient = useQueryClient();
   const { data: groups, isLoading, isError, refetch } = useGroups();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -64,7 +63,7 @@ export default function GroupsScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <PageHeader title="Grupos" onBack={() => router.back()} />
+      <PageHeader title="Grupos" onBack={onBack} />
       <View className="flex-1 px-4 pt-4">
         <Button className="mb-4" onPress={openCreate}>
           Agregar grupo
@@ -78,7 +77,9 @@ export default function GroupsScreen() {
           <FlatList
             data={groups ?? []}
             keyExtractor={(item) => item.id}
-            ListEmptyComponent={<Text className="text-lg text-neutral-500">Todavía no tienes grupos.</Text>}
+            ListEmptyComponent={
+              <Text className="text-lg text-neutral-500">Todavía no tienes grupos.</Text>
+            }
             renderItem={({ item }) => (
               <Card
                 className="mb-4 flex-row items-center"
@@ -91,12 +92,24 @@ export default function GroupsScreen() {
                 <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-card-raised">
                   <Ionicons name="albums-outline" size={16} color="#fafafa" />
                 </View>
-                <Text numberOfLines={1} className="mr-2 flex-1 text-base font-semibold text-neutral-50">
-                  {item.name}
-                </Text>
+                <View className="mr-2 flex-1">
+                  <Text numberOfLines={1} className="text-base font-semibold text-neutral-50">
+                    {item.name}
+                  </Text>
+                  <Text numberOfLines={1} className="mt-0.5 text-sm text-neutral-500">
+                    {item.budgetCents !== null
+                      ? `Presupuesto: ${formatCents(item.budgetCents)}`
+                      : 'Sin presupuesto'}
+                  </Text>
+                </View>
 
                 <View className="flex-row items-center gap-3">
-                  <IconAction size="lg" icon="create-outline" label="Editar" onPress={() => openEdit(item)} />
+                  <IconAction
+                    size="lg"
+                    icon="create-outline"
+                    label="Editar"
+                    onPress={() => openEdit(item)}
+                  />
                   <IconAction
                     size="lg"
                     icon={item.isActive ? 'pause-circle-outline' : 'play-circle-outline'}

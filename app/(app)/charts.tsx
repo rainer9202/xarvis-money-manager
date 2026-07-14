@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import dayjs from 'dayjs';
 
 import { AccountPickerModal } from '@/components/account-picker-modal';
+import { DayCalendarModal } from '@/components/day-calendar-modal';
 import { MonthPickerModal } from '@/components/month-picker-modal';
 import { MovementsSummaryHeader } from '@/components/movements-summary-header';
 import { PieChart } from 'react-native-gifted-charts';
@@ -46,6 +46,7 @@ export default function ChartsScreen() {
   const [dimension, setDimension] = useState<BreakdownDimension>('category');
   const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [isDayCalendarOpen, setIsDayCalendarOpen] = useState(false);
 
   const movementType = BREAKDOWN_MOVEMENT_TYPE[breakdownType];
   const {
@@ -64,7 +65,11 @@ export default function ChartsScreen() {
   const selectedAccount = accounts?.find((account) => account.id === selectedAccountId);
 
   const slices = useMemo(
-    () => buildBreakdown(monthMovements.filter((movement) => movement.movementType === movementType), dimension),
+    () =>
+      buildBreakdown(
+        monthMovements.filter((movement) => movement.movementType === movementType),
+        dimension,
+      ),
     [monthMovements, movementType, dimension],
   );
 
@@ -80,7 +85,7 @@ export default function ChartsScreen() {
         selectedAccount={selectedAccount}
         onOpenAccountPicker={() => setIsAccountPickerOpen(true)}
         onOpenMonthPicker={() => setIsMonthPickerOpen(true)}
-        onPressCalendar={() => setMonth(dayjs().startOf('month'))}
+        onPressCalendar={() => setIsDayCalendarOpen(true)}
       />
 
       <View className="flex-1 px-4 pt-4">
@@ -98,7 +103,9 @@ export default function ChartsScreen() {
               >
                 <Text
                   className={
-                    breakdownType === type ? 'text-base font-semibold text-neutral-950' : 'text-base font-medium text-neutral-400'
+                    breakdownType === type
+                      ? 'text-base font-semibold text-neutral-950'
+                      : 'text-base font-medium text-neutral-400'
                   }
                 >
                   {BREAKDOWN_TYPE_LABELS[type]}
@@ -113,12 +120,18 @@ export default function ChartsScreen() {
            * expense/income segmented control's height (also h-14) so
            * neither one dictates the row's height by its own content. */}
           <Pressable
-            onPress={() => setDimension((current) => (current === 'category' ? 'group' : 'category'))}
+            onPress={() =>
+              setDimension((current) => (current === 'category' ? 'group' : 'category'))
+            }
             accessibilityRole="button"
             accessibilityLabel="Alternar entre categoría o grupo"
             className="h-14 flex-row items-center gap-1.5 rounded-2xl border border-neutral-800 bg-neutral-900 px-4"
           >
-            <Ionicons name={dimension === 'category' ? 'pricetag-outline' : 'albums-outline'} size={16} color="#fbbf24" />
+            <Ionicons
+              name={dimension === 'category' ? 'pricetag-outline' : 'albums-outline'}
+              size={16}
+              color="#fbbf24"
+            />
             <Text className="text-base font-semibold text-neutral-50">
               {dimension === 'category' ? 'Categoría' : 'Grupo'}
             </Text>
@@ -146,7 +159,9 @@ export default function ChartsScreen() {
                     centerLabelComponent={() => (
                       <View className="items-center">
                         <Text className="text-sm font-medium text-neutral-400">Total</Text>
-                        <Text className={`text-lg font-semibold ${getMovementAmountColorClassName(movementType)}`}>
+                        <Text
+                          className={`text-lg font-semibold ${getMovementAmountColorClassName(movementType)}`}
+                        >
                           {movementType === 'MT01' ? '-' : ''}
                           {formatCents(totalCents)}
                         </Text>
@@ -157,7 +172,9 @@ export default function ChartsScreen() {
               ) : null
             }
             ListEmptyComponent={
-              <Text className="text-lg text-neutral-500">Sin movimientos de {BREAKDOWN_TYPE_LABELS[breakdownType].toLowerCase()} este mes.</Text>
+              <Text className="text-lg text-neutral-500">
+                Sin movimientos de {BREAKDOWN_TYPE_LABELS[breakdownType].toLowerCase()} este mes.
+              </Text>
             }
             renderItem={({ item }) => (
               <View className="mb-1.5 flex-row items-center justify-between border-b border-neutral-800 py-4">
@@ -166,7 +183,9 @@ export default function ChartsScreen() {
                   <Text className="text-lg text-neutral-200">{item.label}</Text>
                   <Text className="text-sm text-neutral-500">({item.percent}%)</Text>
                 </View>
-                <Text className={`text-lg font-semibold ${getMovementAmountColorClassName(movementType)}`}>
+                <Text
+                  className={`text-lg font-semibold ${getMovementAmountColorClassName(movementType)}`}
+                >
                   {movementType === 'MT01' ? '-' : ''}
                   {formatCents(item.amountCents)}
                 </Text>
@@ -189,6 +208,13 @@ export default function ChartsScreen() {
         value={month}
         onSelect={setMonth}
         onClose={() => setIsMonthPickerOpen(false)}
+      />
+
+      <DayCalendarModal
+        visible={isDayCalendarOpen}
+        month={month}
+        movements={monthMovements}
+        onClose={() => setIsDayCalendarOpen(false)}
       />
     </View>
   );

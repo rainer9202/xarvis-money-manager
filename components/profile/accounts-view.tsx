@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AccountFormModal } from '@/components/account-form-modal';
@@ -18,8 +17,7 @@ import { confirmDestructive } from '@/lib/confirm';
 import { formatCents } from '@/lib/format-money';
 import { accountsQueryKey, useAccounts } from '@/lib/hooks/use-accounts';
 
-export default function AccountsScreen() {
-  const router = useRouter();
+export function AccountsView({ onBack }: { onBack: () => void }) {
   const queryClient = useQueryClient();
   const { data: accounts, isLoading, isError, refetch } = useAccounts();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -70,7 +68,7 @@ export default function AccountsScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <PageHeader title="Cuentas" onBack={() => router.back()} />
+      <PageHeader title="Cuentas" onBack={onBack} />
       <View className="flex-1 px-4 pt-4">
         <Button className="mb-4" onPress={openCreate}>
           Agregar cuenta
@@ -84,7 +82,9 @@ export default function AccountsScreen() {
           <FlatList
             data={accounts ?? []}
             keyExtractor={(item) => item.id}
-            ListEmptyComponent={<Text className="text-lg text-neutral-500">Todavía no tienes cuentas.</Text>}
+            ListEmptyComponent={
+              <Text className="text-lg text-neutral-500">Todavía no tienes cuentas.</Text>
+            }
             renderItem={({ item }) => (
               <Card
                 padding={20}
@@ -130,7 +130,12 @@ export default function AccountsScreen() {
                 </View>
 
                 <View className="mt-4 flex-row items-center gap-3 border-t border-neutral-800 pt-4">
-                  <IconAction size="lg" icon="create-outline" label="Editar" onPress={() => openEdit(item)} />
+                  <IconAction
+                    size="lg"
+                    icon="create-outline"
+                    label="Editar"
+                    onPress={() => openEdit(item)}
+                  />
                   <IconAction
                     size="lg"
                     icon={item.isActive ? 'pause-circle-outline' : 'play-circle-outline'}

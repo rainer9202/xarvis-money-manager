@@ -46,16 +46,18 @@ export default function SignInScreen() {
   return (
     <ScrollView
       className="flex-1 bg-background"
-      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+        paddingVertical: 32,
+      }}
       keyboardShouldPersistTaps="handled"
     >
-      {/* The logo's wordmark is dark navy — a soft light backdrop keeps it
-          readable instead of nearly vanishing into the app's near-black
-          background. */}
-      <View className="mb-10 self-center rounded-2xl bg-neutral-50 p-3">
+      <View className="mb-10 self-center overflow-hidden rounded-2xl">
         <Image
-          source={require('../../assets/xarvis-logo-transparent.png')}
-          style={{ width: 100, height: 100 }}
+          source={require('../../assets/xarvis-logo-mint.png')}
+          style={{ width: 260, height: 95 }}
           resizeMode="contain"
         />
       </View>
@@ -97,7 +99,9 @@ export default function SignInScreen() {
         )}
       />
 
-      {errorMessage ? <Text className="mb-3 text-center text-sm text-red-500">{errorMessage}</Text> : null}
+      {errorMessage ? (
+        <Text className="mb-3 text-center text-sm text-red-500">{errorMessage}</Text>
+      ) : null}
 
       <Button className="mt-3" isLoading={isSubmitting} onPress={handleSubmit(onSubmit)}>
         Iniciar sesión

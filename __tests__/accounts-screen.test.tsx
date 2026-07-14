@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import AccountsScreen from '../app/(app)/profile/accounts';
+import { AccountsView } from '../components/profile/accounts-view';
 import * as accountsApi from '../lib/api/accounts';
 
 // Trivial smoke test: confirms the accounts screen renders and wires up
@@ -35,9 +36,16 @@ describe('AccountsScreen', () => {
     // @testing-library/react-native v14's `render` is async (it wraps the
     // initial render in `act()`), so it must be awaited before querying.
     await render(
-      <QueryClientProvider client={queryClient}>
-        <AccountsScreen />
-      </QueryClientProvider>,
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 0, height: 0 },
+          insets: { top: 0, left: 0, right: 0, bottom: 0 },
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <AccountsView onBack={() => {}} />
+        </QueryClientProvider>
+      </SafeAreaProvider>,
     );
 
     expect(screen.getByText('Accounts')).toBeTruthy();

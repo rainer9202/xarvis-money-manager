@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 
@@ -24,8 +23,7 @@ type IoniconName = ComponentProps<typeof Ionicons>['name'];
 // Same type pills as app/select-category.tsx — group categories by
 // movementType instead of dumping every category (Gasto/Ingreso/
 // Transferencia) into one flat list.
-export default function CategoriesScreen() {
-  const router = useRouter();
+export function CategoriesView({ onBack }: { onBack: () => void }) {
   const queryClient = useQueryClient();
   const { data: categories, isLoading, isError, refetch } = useCategories();
   const [movementType, setMovementType] = useState<MovementType>(MOVEMENT_TYPES[0]);
@@ -71,7 +69,7 @@ export default function CategoriesScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <PageHeader title="Categorías" onBack={() => router.back()} />
+      <PageHeader title="Categorías" onBack={onBack} />
       <View className="flex-1 px-4 pt-4">
         <Button className="mb-4" onPress={openCreate}>
           Agregar categoría
@@ -131,12 +129,20 @@ export default function CategoriesScreen() {
                 >
                   <Ionicons name={item.icon as IoniconName} size={16} color="#fafafa" />
                 </View>
-                <Text numberOfLines={1} className="mr-2 flex-1 text-base font-semibold text-neutral-50">
+                <Text
+                  numberOfLines={1}
+                  className="mr-2 flex-1 text-base font-semibold text-neutral-50"
+                >
                   {item.name}
                 </Text>
 
                 <View className="flex-row items-center gap-3">
-                  <IconAction size="lg" icon="create-outline" label="Editar" onPress={() => openEdit(item)} />
+                  <IconAction
+                    size="lg"
+                    icon="create-outline"
+                    label="Editar"
+                    onPress={() => openEdit(item)}
+                  />
                   <IconAction
                     size="lg"
                     icon={item.isActive ? 'pause-circle-outline' : 'play-circle-outline'}

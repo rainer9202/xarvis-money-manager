@@ -4,7 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MovementDetailModal } from '@/components/movement-detail-modal';
-import { ChartsTabIcon, HomeTabIcon, ProfileTabIcon, ReportsTabIcon } from '@/components/ui/tab-icons';
+import {
+  ChartsTabIcon,
+  HomeTabIcon,
+  ProfileTabIcon,
+  ReportsTabIcon,
+} from '@/components/ui/tab-icons';
 import { colors } from '@/lib/theme';
 
 const ACTIVE_COLOR = colors.accent;
@@ -58,7 +63,10 @@ export default function AppLayout() {
       >
         <Tabs.Screen
           name="index"
-          options={{ title: 'Inicio', tabBarIcon: ({ color, focused }) => <HomeTabIcon color={color} focused={focused} /> }}
+          options={{
+            title: 'Inicio',
+            tabBarIcon: ({ color, focused }) => <HomeTabIcon color={color} focused={focused} />,
+          }}
         />
         <Tabs.Screen
           name="charts"
@@ -78,7 +86,10 @@ export default function AppLayout() {
         />
         <Tabs.Screen
           name="profile"
-          options={{ title: 'Perfil', tabBarIcon: ({ color, focused }) => <ProfileTabIcon color={color} focused={focused} /> }}
+          options={{
+            title: 'Perfil',
+            tabBarIcon: ({ color, focused }) => <ProfileTabIcon color={color} focused={focused} />,
+          }}
         />
       </Tabs>
 

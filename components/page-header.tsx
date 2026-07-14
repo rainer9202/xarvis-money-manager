@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, StatusBar, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,10 +22,14 @@ type PageHeaderProps = {
  */
 export function PageHeader({ title, onBack }: PageHeaderProps) {
   const insets = useSafeAreaInsets();
+  // insets.top can report 0 on Android when the edge-to-edge inset dispatch
+  // hasn't kicked in yet — StatusBar.currentHeight reads the real native bar
+  // height directly, so it's a reliable floor for the same value.
+  const topInset = Platform.OS === 'android' ? Math.max(insets.top, StatusBar.currentHeight ?? 0) : insets.top;
   return (
     <View
       className="flex-row items-center gap-3 border-b border-nav-border bg-nav px-6 py-5"
-      style={{ paddingTop: insets.top + 20 }}
+      style={{ paddingTop: topInset + 20 }}
     >
       {onBack ? (
         <Pressable
